@@ -96,6 +96,7 @@ class PSR4_WordPress_Plugin
    */
   public function autoload($class)
   {
+
     $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);
 
     if (!class_exists($class)) {
@@ -105,5 +106,6 @@ class PSR4_WordPress_Plugin
         require $class_full_path;
       }
     }
+
   }
 }

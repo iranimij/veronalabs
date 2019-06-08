@@ -12,8 +12,15 @@
  */
 
 add_action('plugins_loaded', [Veronalabs::get_instance(), 'plugin_setup']);
-register_activation_hook(__FILE__, [Veronalabs::get_instance(), 'install_tables']);
-register_deactivation_hook(__FILE__,[Veronalabs::get_instance(),'deActivation']);
+register_activation_hook(__FILE__, [
+  Veronalabs::get_instance(),
+  'install_tables',
+]);
+register_deactivation_hook(__FILE__, [
+  Veronalabs::get_instance(),
+  'deActivation',
+]);
+
 class Veronalabs {
 
   /**
@@ -61,9 +68,79 @@ class Veronalabs {
     $this->plugin_path = plugin_dir_path(__FILE__);
     $this->load_language('psr4-wordpress-plugin');
 
+
     spl_autoload_register([$this, 'autoload']);
     // Example: Modify the Contents
     Actions\Post::addEmojiToContents();
+  }
+
+  public function registerPostTypes() {
+    register_post_type('book',
+      [
+        'labels' => [
+          'name' => __('Book'),
+          'singular_name' => __('Book'),
+        ],
+        'public' => TRUE,
+        'has_archive' => TRUE,
+        'taxonomies' => ['Publisher', 'Authors'],
+        'register_meta_box_cb' => [$this,'add_new_meta_box']
+
+      ]
+    );
+  }
+
+  public function add_new_meta_box() {
+    add_meta_box("isbn", __("isbn", "psr4-wordpress-plugin"), [$this, 'mycallback']);
+  }
+
+  public function mycallback($post) {
+    $post_id = $post->ID;
+    if (is_numeric($post_id)){
+    global $wpdb;
+    $info = $wpdb->get_row('SELECT isbn FROM '.$wpdb->prefix.'books_info where post_id ='.$post_id,ARRAY_N );
+
+    }
+    ?>
+    <label for="wporg_field"><?PHP _e("isbn","psr4-wordpress-plugin");?></label>
+    <input type="text" name="isbn" value="<?=$info[0];?>">
+<?PHP
+  }
+
+  function wporg_save_postdata($post_id)
+  {
+    global $wpdb;
+    $info = $wpdb->get_row('SELECT ID FROM '.$wpdb->prefix.'books_info where post_id ='.$post_id,ARRAY_N );
+    $id = $info[0];
+
+    if (isset($id)){
+      $wpdb->update(
+        $wpdb->prefix.'books_info',
+        array(
+          'post_id' => $post_id,
+          'isbn' => $_POST['isbn']
+        ),
+        array( 'ID' => $id ),
+        array(
+          '%d',	// value1
+          '%s'	// value2
+        ),
+        array( '%d' )
+      );
+    }else{
+
+    $wpdb->insert(
+      $wpdb->prefix.'books_info',
+      array(
+        'post_id' => $post_id,
+        'isbn' => $_POST['isbn']
+      ),
+      array(
+        '%d',
+        '%s'
+      )
+    );
+    }
   }
 
   /**
@@ -72,6 +149,38 @@ class Veronalabs {
    * @see plugin_setup()
    */
   public function __construct() {
+    add_action('init', array( $this, 'registerPostTypes' ) );
+    add_action( 'init', array( $this, 'create_private_book_tax' ) );
+    add_action('save_post', array( $this, 'wporg_save_postdata' ));
+  }
+
+
+
+  public function books_info_func(){
+    echo "TEST";
+  }
+
+  public function create_private_book_tax(){
+    register_taxonomy(
+      'Publisher',
+      'book',
+      array(
+        'label' => __( 'Publisher' ),
+        'public' => TRUE,
+        'rewrite' => TRUE,
+        'hierarchical' => FALSE,
+      )
+    );
+    register_taxonomy(
+      'Authors',
+      'book',
+      array(
+        'label' => __( 'Authors' ),
+        'public' => TRUE,
+        'rewrite' => TRUE,
+        'hierarchical' => FALSE,
+      )
+    );
   }
 
   /**

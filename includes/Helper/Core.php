@@ -9,8 +9,11 @@ class Core
      */
     public static function getRandomEmoji()
     {
+
         $items = Array(':)', ':(', ':|', ':D');
 
+
         return $items[array_rand($items)];
+
     }
 }

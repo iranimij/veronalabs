@@ -12,6 +12,7 @@ class Core
 
         $items = Array(':)', ':(', ':|', ':D');
 
+
         return $items[array_rand($items)];
 
     }
